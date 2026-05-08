@@ -147,10 +147,12 @@ echo "${MANAGEMENT_HEADNODE_IP} ${MANAGEMENT_HEADNODE_FQDN}" | \
 #       the shell code.
 {%- for node in nodes %}
 info "Adding managed node {{ node.hostname }} to /etc/hosts"
+NID="$(printf "nid-%3.3d"  {{ node.nid }})
+NID_FQDN="${NID}.{{ hosting_config.net_head_domain }}"
 NODE_FQDN="{{ node.hostname }}.{{ hosting_config.net_head_domain }}"
 NODE_IP="{{ node.interfaces[0].ip_addrs[0].ip_addr }}"
 sudo sed -i /etc/hosts -e "/${NODE_FQDN}/d"
-echo "${NODE_IP} ${NODE_FQDN} {{ node.hostname }}" | \
+echo "${NODE_IP} ${NODE_FQDN} {{ node.hostname }} ${NID_FQDN} ${NID}" | \
     sudo tee -a /etc/hosts > /dev/null
 {%- endfor %}
 {%- endif %}
@@ -416,5 +418,5 @@ sudo virt-install \
 # Wait for compute node(s) to come up and try to SSH to compute
 # node(s) as a sanity check of the installation.
 {%- for node in nodes %}
-ssh_to_compute_node {{ node.hostname }} "${DEPLOY_USER}"
+ssh_to_compute_node "$(printf "nid-%3.3d" {{ node.nid }})" "${DEPLOY_USER}"
 {%- endfor %}
