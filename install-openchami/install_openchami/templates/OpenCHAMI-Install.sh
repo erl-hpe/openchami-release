@@ -76,6 +76,17 @@ function ssh_to_compute_node() {
     return 1
 }
 
+{%- if deployment_mode == 'cluster' %}
+
+# In cluster mode, we will switch the DNS to refer to the coresmd-core-dns
+# server, which will not remain running during a re-install. To avoid
+# being left without a name server, we need to make sure we are pointing
+# to the external name server prior to cleaning up and re-installing. This
+# is also the desired state when we begin installing for the first time,
+# so make that switch unconditionally here.
+info "Switching to the cluster external DNS nameserver"
+switch_dns "${MANAGEMENT_EXT_NAMESERVER}" "${CLUSTER_DOMAIN}"
+{%- endif %}
 
 # Create the backing directories for S3 and registry that must be made
 # by 'root'. If they are already there and directories, remove them
@@ -147,7 +158,7 @@ echo "${MANAGEMENT_HEADNODE_IP} ${MANAGEMENT_HEADNODE_FQDN}" | \
 #       the shell code.
 {%- for node in nodes %}
 info "Adding managed node {{ node.hostname }} to /etc/hosts"
-NID="$(printf "nid-%3.3d"  {{ node.nid }})
+NID="$(printf "nid-%3.3d"  {{ node.nid }})"
 NID_FQDN="${NID}.{{ hosting_config.net_head_domain }}"
 NODE_FQDN="{{ node.hostname }}.{{ hosting_config.net_head_domain }}"
 NODE_IP="{{ node.interfaces[0].ip_addrs[0].ip_addr }}"
@@ -381,7 +392,9 @@ ochami cloud-init node set \
 {%- if deployment_mode == 'cluster' %}
 # In 'cluster' mode the nodes are all "physical" hosts already plugged
 # into the cluster network. We just need to power them on and they
-# should boot from OpenCHAMI
+# should boot from OpenCHAMI. In case they were running before this,
+# power them off first.
+power-off-node "{{ node.name }}" "{{ node.bmc_name }}" || true
 power-on-node "{{ node.name }}" "{{ node.bmc_name }}"
 {%- else %}
 # In 'host' mode, all of the compute nodes are VMs on the headnode VM,
