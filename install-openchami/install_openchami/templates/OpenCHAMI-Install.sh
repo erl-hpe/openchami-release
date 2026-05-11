@@ -58,15 +58,17 @@ function cleanup_service() {
 function ssh_to_compute_node() {
     local hostname="${1}"; shift || fail "no hostname specified"
     local user="${1}"; shift || fail "no deployment username provided"
+    local cmd="${1}"; shift || cmd="true"
+    local retries="${1}"; shift || retries=30
     local check="-o StrictHostKeyChecking=no"
     local file="-o UserKnownHostsFile=/dev/null"
     local time="-o ConnectTimeout=10"
     local where="root@${hostname}"
     local retval=0
     info "Attempting to SSH to ${hostname} as ${user}"
-    for retry in {0..30}; do
+    for ((retry=0; retry<retries; ++retry)); do
         if sudo su - "${user}" -c \
-                "ssh ${check} ${file} ${time} ${where} true"; then
+                "ssh ${check} ${file} ${time} ${where} '${cmd}'"; then
             info "Successful SSH to ${hostname} as ${user}"
             return 0
         fi
@@ -77,6 +79,20 @@ function ssh_to_compute_node() {
 }
 
 {%- if deployment_mode == 'cluster' %}
+
+# In cluster mode, if we are returning to a cluster that has already
+# been deployed and has existing nodes in it, the managed nodes will
+# have undesired residual configured state on them from when
+# cloud-init was most recently run. So, if there are reachable managed
+# nodes, clear away the cloud-init state on each one.
+{%- for node in nodes %}
+# Check reachability and clear cloud-init as needed
+host="$(printf "nid-%3.3d" {{ node.nid }})"
+if ssh_to_compute_node "${host}" "${DEPLOY_USER}" "true" "1"; then
+    ssh_to_compute_node "${host}" "${DEPLOY_USER}" \
+                        "cloud-init clean --logs" "1"
+fi
+{% endfor %}
 
 # In cluster mode, we will switch the DNS to refer to the coresmd-core-dns
 # server, which will not remain running during a re-install. To avoid
