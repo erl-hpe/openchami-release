@@ -59,7 +59,7 @@ function ssh_to_compute_node() {
     local hostname="${1}"; shift || fail "no hostname specified"
     local user="${1}"; shift || fail "no deployment username provided"
     local cmd="${1}"; shift || cmd="true"
-    local retries="${1}"; shift || retries=30
+    local retries="${1}"; shift || retries=60
     local check="-o StrictHostKeyChecking=no"
     local file="-o UserKnownHostsFile=/dev/null"
     local time="-o ConnectTimeout=10"
@@ -78,6 +78,15 @@ function ssh_to_compute_node() {
     done
     info "failed to SSH to ${hostname} as ${user}"
     return 1
+}
+
+function create_openchami_env() {
+    local input_file="${DEPLOY_DIR}/openchami_env.yaml"
+    if [ -f "${input_file}" ]; then
+        yaml_to_json < "${input_file}" | \
+            jq -r 'to_entries | .[] | "\(.key)=\(.value)"' | \
+            sudo tee /etc/openchami/configs/openchami.env > /dev/null
+    fi
 }
 
 {%- if deployment_mode == 'cluster' %}
@@ -234,6 +243,11 @@ if [ "${retry}" -eq 10 ]; then
     fail "timed out waiting to clear the SMD and BSS data"
 fi
 
+# Create a fresh version of /etc/openchami/configs/openchami.env for
+# the quadlets to use. This reflects the installer config, not what was
+# shipped with the release.
+create_openchami_env
+
 # Start OpenCHAMI
 info "Starting OpenCHAMI"
 sudo systemctl start openchami.target
@@ -330,7 +344,7 @@ switch_dns "${MANAGEMENT_HEADNODE_IP}" "${CLUSTER_DOMAIN}"
 {%- endif %}
 
 # Refresh ochami token after the image builds in case it expired
-export DEMO_ACCESS_TOKEN="$(sudo bash -lc 'gen_access_token')"
+get-ochami-token || fail "unable to refresh access token"
 
 # Create the boot configuration for the Compute node Debug image
 cd "${DEPLOY_DIR}/boot"

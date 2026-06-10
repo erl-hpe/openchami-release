@@ -27,7 +27,7 @@ manifest:
   # must be set up for passwordless 'sudo' access. All rendered files
   # generated from this manifest will be owned by this user and its
   # primary group unless otherwise specified in the manifest entry for
-  # the file. 
+  # the file.
   #
   # The primary group ID and user ID will be filled in in this section
   # by the installer as 'deployment_user.uid' and 'deployment_user.gid'
@@ -89,6 +89,14 @@ manifest:
         type: yaml    # 'yaml' or 'json'
       mode: "644"
       mkdir: true
+    openchami_env:
+      template_name: null  # generated from config
+      target: openchami_env.yaml
+      generation:
+        config_path: openchami_config.openchami_env
+        type: yaml    # 'yaml' or 'json'
+      mode: "600"
+      mkdir: false
     bmc_info:
       # This template is delivered with the install_openchami module and
       # gets installed into a system directory with mode "rw-------"
@@ -221,7 +229,7 @@ bmcs:
 # The hosting configuration is here. This identifies the cluster
 # network from the management node (where OpenCHAMI runs) and sets up
 # the DNS and DHCP information needed to set up the network related
-# microservices. 
+# microservices.
 hosting_config:
   # this is the network name not the interface name. It is used to
   # create virtual networks in 'virsh' for 'host' mode operation.
@@ -246,6 +254,142 @@ hosting_config:
   extra_packages:
     pre: []
     main: []
+
+# The 'openchami_config' section provides configuration that is specific
+# to OpenCHAMI itself, not the hosting of it or the nodes or images to
+# be run on it.
+openchami_config:
+  # The file '/etc/openchami/openchami.env' contains environment
+  # variables used by services to configure them. The installer composes
+  # an intermediate YAML file that is used to populate this file. The
+  # 'openchami_env' section is used to generate that file and can
+  # contain quoted Jinja2 template data in its values taken from
+  # elsewhere in this config. Ultimately, every environment variable
+  # here and any you add in an overlay will wind up in
+  # '/etc/openchami/openchami.env'
+  openchami_env:
+    # The host name of the headnode of the OpenCHAMI cluster
+    SYSTEM_NAME: '{{ hosting_config.net_head_hostname }}'
+    # The domain name where the head node is found
+    SYSTEM_DOMAIN: '{{ hosting_config.net_head_domain }}'
+    # The host part of URLs referencing the head node
+    SYSTEM_URL: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}'
+
+    # URLs for access to OpenCHAMI services through the head node
+    URLS_SELF_ISSUER: https://${SYSTEM_URL}/
+    URLS_SELF_PUBLIC: https://${SYSTEM_URL}/
+    URLS_LOGIN: https://${SYSTEM_URL}/login
+    URLS_CONSENT: https://${SYSTEM_URL}/consent
+    URLS_LOGOUT: https://${SYSTEM_URL}/logout
+
+    # The general OpenCHAMI postgres database username
+    POSTGRES_USER: ochami
+
+    # SMD Configuration
+    # The name of the postgres server used by SMD
+    SMD_DBHOST: postgres
+    # The port number on which the SMD postgres server runs
+    SMD_DBPORT: '5432'
+    # The name of the SMD database hosted by the SMD postgres server
+    SMD_DBNAME: hmsds
+    # The name of the SMD user for access to the SMD postgres server
+    SMD_DBUSER: smd-user
+    # Options provided when starting the SMD postgres server
+    SMD_DBOPTS: sslmode=disable
+    # The URL of the JWKS server used by SMD. Note, this should use the
+    # same protocol (http or https), server name, and port (if any) as
+    # is used in SMD_AUTH_ISSUER.
+    SMD_JWKS_URL: http://tokensmith:8080/.well-known/jwks.json
+    # The name of the service providing AUTH tokens for SMD
+    SMD_AUTH_BACKEND: tokensmith
+    # The URL of the AUTH token issuer expected by SMD for its
+    # tokens. Note, this should use the same protocol (http or https),
+    # server name and server port as the SMD_JWKS_URL.
+    SMD_AUTH_ISSUER: http://tokensmith:8080
+    # The 'audience' or 'audiences' expected in tokens used to talk to SMD
+    SMD_AUTH_AUDIENCES: smd
+
+    # Tokensmith Authentication Config
+    #
+    # It is unclear what this does. It ostensibly sets the issuer on
+    # tokens, but that does not appear to happen. Keeping it here
+    # because it is in the OpenCHAMI Release
+    TOKENSMITH_ISSUER: http://tokensmith:8080
+    # The cluster identifier for OpenCHAMI in Tokensmith
+    TOKENSMITH_CLUSTER_ID: demo-cluster
+    # It is not clear what this is used for. It appears to be OpenCHAMI
+    # specific, and it i sin the OpenCHAMI Release.
+    TOKENSMITH_OPENCHAMI_ID: demo-openchami
+    # This specifies the location where tokensmith will look for its
+    # configuration. For quadlets, it is a path to a volume mounted in
+    # the container.
+    TOKENSMITH_CONFIG: /etc/tokensmith/config.json
+    # This specifies where tokensmith will store its keys. For quadlets
+    # it is a path to a file within the container.
+    TOKENSMITH_KEY_DIR: /tokensmith/data/keys
+    # This specifies a path to a directory where RFC 8693 bootstrap
+    # token data are stored. For quadlets it is the path within the
+    # container.
+    TOKENSMITH_RFC8693_BOOTSTRAP_STORE: /tokensmith/data/bootstrap
+    # This specifies a path to a directory where RFC 8693 refresh
+    # token data are stored. For quadlets it is the path within the
+    # container.
+    TOKENSMITH_RFC8693_REFRESH_STORE: /tokensmith/data/refresh
+    #TOKENSMITH_OIDC_PROVIDER should point to an actual OIDC provider if
+    # you intend to use a real provider # The default is
+    # http://hydra:4444 which we are putting here to document the
+    # default
+    TOKENSMITH_OIDC_PROVIDER: http://hydra:4444
+    # The port that the tokensmith server listens on internally (if
+    # it is internal) or publicly otherwise. For quadlets, this is the
+    # port that the server listens on in the internal OpenCHAMI network.
+    TOKENSMITH_PORT: 8080
+
+    # Docker StepCA configuration
+    # The directory where Step CA runs. For quadlets this is a path
+    # within the container.
+    STEPPATH: /home/step
+    # The name of the CA that, in other words the issuer of your CA certs
+    DOCKER_STEPCA_INIT_NAME: OpenCHAMI
+    # The list of IPs or hostnames that the CA will accept requests on
+    DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,step-ca.openchami.cluster
+    # Create an initial ACME provisioner for the CA (or not, if not 'true')
+    DOCKER_STEPCA_INIT_ACME: 'true'
+    # The password for the encrypted CA keys and the default CA
+    # provisioner
+    # ERIC - MAKE THIS A GENERATED PASSWORD
+    DOCKER_STEPCA_INIT_PASSWORD: supersecretpassword
+    # The label for the initial admin (JWK) provisioner.
+    DOCKER_STEPCA_INIT_PROVISIONER_NAME: Admin
+    # The password for the initial admin (JWK) provisioner.
+    #ERIC - MAKE THIS A GENERATED PASSWORD
+    DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD: provisionerpassword
+
+    # Useful URLs
+    # The URL that reaches SMD
+    SMD_URL: http://smd:27779
+    # THe URL that aliases HSM to SMD
+    HSM_URL: http://smd:27779
+
+    # Disable Ansible host key checking in containers that use ansible
+    ANSIBLE_HOST_KEY_CHECKING: 'False'
+
+  # The coredhcp configuration has an old form in which all of the
+  # plug-in parameters are positional and a newer form in which all of the
+  # plug-in parameters are named. The `coredhcp_named_parameters` flag tells
+  # the installer to use named parameters if it is true and positional
+  # parameters if it is false when templating this configuration.
+  coredhcp_named_parameters: true
+
+  # The 'get-ochami-token' command provided by the installer allows a
+  # user to obtain an OAUTH token for use with SMD through ochami. At
+  # least temporarily, there is no working 'gen_access_token' command
+  # available in OpenCHAMI, but there might be again, or you might be
+  # installing an older version of OpenCHAMI where there was one. The
+  # 'gen_access_token_works' flag tells the installer whether to use
+  # 'gen_access_token' as the basis of 'get-ochami-token' or supply
+  # explicit code for that purpose.
+  gen_access_token_works: False
 
 # The 'nodes' section provides information about the managed nodes to be
 # created / managed by OpenCHAMI. It is used in the 'host' deployment

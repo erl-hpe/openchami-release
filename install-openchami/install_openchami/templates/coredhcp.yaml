@@ -17,6 +17,23 @@ server4:
     - dns: {{ hosting_config.net_head_ip }}
     - router: {{ hosting_config.net_head_ip }}
     - netmask: {{ hosting_config.cluster_net_mask }}
+{%- if openchami_config.coredhcp_named_parameters %}
+    - coresmd: |
+        svc_base_uri=https://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:8443
+        ipxe_base_uri=http://{{ hosting_config.net_head_ip }}:8081
+        ca_cert=/root_ca/root_ca.crt
+        cache_valid=30s
+        lease_time=1h
+        single_port=false
+# DHCP Settings
+    - bootloop: |
+        lease_file=/tmp/coredhcp.db
+        script_path=default
+        lease_time=5m
+        ipv4_start={{ hosting_config.cluster_net_dhcp_start }}
+        ipv4_end={{ hosting_config.cluster_net_dhcp_end }}
+{%- else %}
     - coresmd: https://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:8443 http://{{ hosting_config.net_head_ip }}:8081 /root_ca/root_ca.crt 30s 1h false
 # DHCP settings...
     - bootloop: /tmp/coredhcp.db default 5m {{ hosting_config.cluster_net_dhcp_start }} {{ hosting_config.cluster_net_dhcp_end }}
+{%- endif %}

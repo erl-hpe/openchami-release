@@ -105,5 +105,18 @@ function restart-node() {
 }
 
 function get-ochami-token() {
+{%- if openchami_config.gen_access_token_works %}
     export DEMO_ACCESS_TOKEN="$(sudo bash -lc 'gen_access_token')"
+{%- else %}
+    export DEMO_ACCESS_TOKEN="$(\
+          sudo podman exec tokensmith /bin/sh -c "\
+               /usr/local/bin/tokensmith user-token create \
+                  --audience smd \
+                  --key-file /tokensmith/data/keys/private.pem \
+                  --subject 'admin@example.com' \
+                  --scopes 'admin' \
+                  --enable-local-user-mint\
+           "
+    )"
+{%- endif %}
 }
