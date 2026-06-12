@@ -389,7 +389,13 @@ openchami_config:
   # 'gen_access_token_works' flag tells the installer whether to use
   # 'gen_access_token' as the basis of 'get-ochami-token' or supply
   # explicit code for that purpose.
-  gen_access_token_works: False
+  gen_access_token_works: false
+
+  # The 'use_boot_service' flag tells the installer that OpenCHAMI is
+  # using the 'boot-service' boot configuration server instead of
+  # BSS. This changes the way the boot configuration is structured and
+  # used during deployment.
+  use_boot_service: true
 
 # The 'nodes' section provides information about the managed nodes to be
 # created / managed by OpenCHAMI. It is used in the 'host' deployment

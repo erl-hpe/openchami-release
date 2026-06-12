@@ -119,19 +119,6 @@ function switch_dns() {
         sudo nmcli connection up "${connection}"
 }
 
-function yaml_to_json() {
-    python3 -c 'import yaml, json, sys; json.dump(yaml.safe_load(sys.stdin), sys.stdout, indent=2)'
-}
-
-function derive_architecture() {
-    local uname_arch="$(uname -m)"
-    case "${uname_arch}" in
-        arm64|aarch64) echo "arm64";;
-        amd64|x86_64) echo "amd64";;
-        *) fail "unknown platform architecture '${uname_arch}'";;
-    esac
-}
-
 # Some useful variables that can be templated
 CLUSTER_DOMAIN="{{ hosting_config.net_head_domain }}"
 CLUSTER_NAME="{{ hosting_config.cluster_name }}"

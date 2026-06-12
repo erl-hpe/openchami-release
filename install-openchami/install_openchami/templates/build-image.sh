@@ -9,6 +9,19 @@ function _bi_fail() {
     return 1
 }
 
+function yaml_to_json() {
+    python3 -c 'import yaml, json, sys; json.dump(yaml.safe_load(sys.stdin), sys.stdout, indent=2)'
+}
+
+function derive_architecture() {
+    local uname_arch="$(uname -m)"
+    case "${uname_arch}" in
+        arm64|aarch64) echo "arm64";;
+        amd64|x86_64) echo "amd64";;
+        *) fail "unknown platform architecture '${uname_arch}'";;
+    esac
+}
+
 function build-image() {
     set -e
     local config="${1}"; shift || _bi_fail "image config file not specified"
@@ -64,6 +77,15 @@ params: 'nomodeset ro root=live:${uri_img} ip=dhcp overlayroot=tmpfs overlayroot
 macs:
 $(for mac in ${macs}; do echo "  - ${mac}"; done)
 EOF
+}
+
+generate-boot-config-json() {
+    {%- if openchami_config.use_boot_service %}
+    local query='{ "spec": . }'
+    {%- else %}
+    local query='.'
+    {%- endif %}
+    generate-boot-config "$@" | yaml_to_json | jq "${query}"
 }
 
 function __bmc_user() {

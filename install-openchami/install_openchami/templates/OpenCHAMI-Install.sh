@@ -349,13 +349,13 @@ get-ochami-token || fail "unable to refresh access token"
 # Create the boot configuration for the Compute node Debug image
 cd "${DEPLOY_DIR}/boot"
 for builder in "${IMAGE_BUILDERS[@]}"; do
-    BOOT_CONFIG_FILE="${DEPLOY_DIR}/boot/$(basename "${builder}")"
+    BOOT_CONFIG_FILE="${DEPLOY_DIR}/boot/$(basename "${builder}" .yaml).json"
     info "Building boot configuration '${BOOT_CONFIG_FILE}'"
     S3_PREFIX="$( \
       yaml_to_json < "${builder}" | jq -r '.options.s3_prefix' |
       sed -e 's:/[[:blank:]]*$::' \
     )"
-    generate-boot-config \
+    generate-boot-config_json \
         "${S3_PREFIX}" \
         "${MANAGEMENT_HEADNODE_IP}" \
         $(managed_macs) | \
@@ -364,13 +364,18 @@ done
 
 info "Install boot configuration"
 # At the moment, there is only one "active" boot image that can be set
-# up. It is the iamge used by the 'compute' group in the 'images'
+# up. It is the image used by the 'compute' group in the 'images'
 # section of the config. Set up a variable for easy access to the
 # build script and boot script for that image.
-ACTIVE_BOOT_IMAGE="{{ images.builders[images.deployment_targets['compute']].metadata.boot_param_filename }}"
+ACTIVE_BOOT_CONFIG="$(basename "{{ images.builders[images.deployment_targets['compute']].metadata.boot_param_filename }}" .yaml).json"
 
-ochami bss boot params set -f yaml \
-       -d @"${DEPLOY_DIR}/boot/${ACTIVE_BOOT_IMAGE}"
+{%- if openchami_config.use_boot_service %}
+sudo ochami config --system cluster set demo cluster.boot-service.uri /boot-service
+ochami boot config add -d @"${DEPLOY_DIR}/boot/${ACTIVE_BOOT_CONFIG}"
+{%- else %}
+ochami bss boot params set -d @"${DEPLOY_DIR}/boot/${ACTIVE_BOOT_CONFIG}"
+{%- endif %}
+
 
 # Set up cloud-init for some basics...
 #
