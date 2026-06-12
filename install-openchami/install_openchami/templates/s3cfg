@@ -1,7 +1,7 @@
 # Setup endpoint
 #
-host_base = {{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:9000
-host_bucket = {{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:9000
+host_base = {{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.s3.api_port }}
+host_bucket = {{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.s3.api_port }}
 bucket_location = us-east-1
 use_https = False
 

@@ -57,11 +57,12 @@ function generate-boot-config() {
     local image_subpath="${1}"; shift || _bi_fail "image subpath (example 'compute/debug') not provided as first argument"
     local headnode_ip="${1}"; shift || _bi_fail "management head-node IP address not provided as second argument"
     local macs="$(for mac in "$@"; do echo "${mac}"; done)"
+    local s3_port="{{ openchami_config.s3.api_port }}"
     [[ "${macs}" != "" ]] || _bi_fail "no target node MAC addresses provided"
     cd /opt/workdir/boot
     local uris="$(s3cmd ls -Hr s3://boot-images | grep "${image_subpath}" | \
                         awk '{print $4}' | \
-                        sed "s-s3://-http://${headnode_ip}:9000/-" | \
+                        sed "s-s3://-http://${headnode_ip}:${s3_port}/-" | \
                         xargs)"
     local uri_img="$(echo "${uris}" | cut -d' ' -f1)"
     [[ "${uri_img}" != "" ]] || _bi_fail "no disk image found that matches '${image_subpath}'"
@@ -69,11 +70,16 @@ function generate-boot-config() {
     [[ "${uri_initramfs}" != "" ]] || _bi_fail "no initrd image found that matches '${image_subpath}'"
     local uri_kernel="$(echo "${uris}" | cut -d' ' -f3)"
     [[ "${uri_kernel}" != "" ]] || _bi_fail "no kernel image found that matches '${image_subpath}'"
+{%- if openchami_config.cloud_init.provided %}
+    local cloud_init="cloud-init=enabled ds=nocloud-net;s=http://${headnode_ip}:8081/cloud-init"
+{%- else %}
+    local cloud_init=""
+{%- endif %}
     cat <<EOF
 ---
 kernel: '${uri_kernel}'
 initrd: '${uri_initramfs}'
-params: 'nomodeset ro root=live:${uri_img} ip=dhcp overlayroot=tmpfs overlayroot_cfgdisk=disabled apparmor=0 selinux=0 console=ttyS0,115200 ip6=off cloud-init=enabled ds=nocloud-net;s=http://${headnode_ip}:8081/cloud-init'
+params: 'nomodeset ro root=live:${uri_img} ip=dhcp overlayroot=tmpfs overlayroot_cfgdisk=disabled apparmor=0 selinux=0 console=ttyS0,115200 ip6=off ${cloud_init}'
 macs:
 $(for mac in ${macs}; do echo "  - ${mac}"; done)
 EOF

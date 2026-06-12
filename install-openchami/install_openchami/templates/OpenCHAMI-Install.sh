@@ -33,7 +33,9 @@ ROCKY_DIRS=(
 
 WORK_DIRS=(
     "${DEPLOY_DIR}/boot"
+{%- if openchami_config.cloud_init.provided %}
     "${DEPLOY_DIR}/cloud-init"
+{%- endif %}
 )
 
 S3_PUBLIC_BUCKETS=(
@@ -312,7 +314,7 @@ info "setting up 'regctl' to manage the registry"
 curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-$(derive_architecture) > regctl \
     && sudo mv regctl /usr/local/bin/regctl \
     && sudo chmod 755 /usr/local/bin/regctl
-/usr/local/bin/regctl registry set --tls disabled "${MANAGEMENT_HEADNODE_FQDN}:5000"
+/usr/local/bin/regctl registry set --tls disabled "${MANAGEMENT_HEADNODE_FQDN}:${REGISTRY_API_PORT}"
 
 # Install and configure S3 client
 info "setting up buckets in S3"
@@ -322,8 +324,8 @@ for bucket in "${S3_PUBLIC_BUCKETS[@]}"; do
     s3cmd setacl s3://"${bucket}" --acl-public
     s3cmd setpolicy "${DEPLOY_DIR}/s3-public-read-${bucket}.json" \
           s3://"${bucket}" \
-          --host="${MANAGEMENT_HEADNODE_IP}:9000" \
-          --host-bucket="${MANAGEMENT_HEADNODE_IP}:9000"
+          --host="${MANAGEMENT_HEADNODE_IP}:${S3_API_PORT}" \
+          --host-bucket="${MANAGEMENT_HEADNODE_IP}:${S3_API_PORT}"
 done
 
 # Build the node images...
@@ -355,7 +357,7 @@ for builder in "${IMAGE_BUILDERS[@]}"; do
       yaml_to_json < "${builder}" | jq -r '.options.s3_prefix' |
       sed -e 's:/[[:blank:]]*$::' \
     )"
-    generate-boot-config_json \
+    generate-boot-config-json \
         "${S3_PREFIX}" \
         "${MANAGEMENT_HEADNODE_IP}" \
         $(managed_macs) | \
@@ -377,6 +379,7 @@ ochami bss boot params set -d @"${DEPLOY_DIR}/boot/${ACTIVE_BOOT_CONFIG}"
 {%- endif %}
 
 
+{%- if openchami_config.cloud_init.provided %}
 # Set up cloud-init for some basics...
 #
 # First the global cloud-init metadata
@@ -425,6 +428,7 @@ done
 ochami cloud-init node set \
        -d '[{"id":"{{ node.name }}","local-hostname":"{{ node.hostname}} "}]'
 {% endfor %}
+{%- endif %}
 
 {%- for node in nodes %}
 {%- if deployment_mode == 'cluster' %}

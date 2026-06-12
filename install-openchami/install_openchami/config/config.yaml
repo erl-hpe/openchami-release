@@ -397,6 +397,22 @@ openchami_config:
   # used during deployment.
   use_boot_service: true
 
+  # S3 has two ports, the API port where API operations are handled and
+  # the Web-UI (console) port.
+  s3:
+    api_port: 9000
+    console_port: 9001
+  # The registry has one port, the API port where API operations are
+  # handled.
+  registry:
+    api_port: 5000
+
+  # The `cloud_init` section is a placholder for future configuration of
+  # Cloud Init in this config and contains the `enabled` flag which
+  # indicates whether OpenCHAMI is providing a cloud-init server or not.
+  cloud_init:
+    provided: false
+
 # The 'nodes' section provides information about the managed nodes to be
 # created / managed by OpenCHAMI. It is used in the 'host' deployment
 # mode to help configure the VMs that are created locally as managed
@@ -475,7 +491,7 @@ images:
           # NOTE: the publish_registry setting here may be used by other
           #       image builders as their 'parent' URL. Make sure if you
           #       change this you change those items as well.
-          publish_registry: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:5000/{{ hosting_config.cluster_name }}'
+          publish_registry: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.registry.api_port }}/{{ hosting_config.cluster_name }}'
           registry_opts_push:
             - '--tls-verify=false'
         repos:
@@ -512,12 +528,12 @@ images:
           # NOTE: this uses the registry publication path in the
           #       'rocky-base-9' image builder. Make sure if you change
           #       that you change this as well.
-          parent: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:5000/{{ hosting_config.cluster_name }}/rocky-base:9'
+          parent: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.registry.api_port }}/{{ hosting_config.cluster_name }}/rocky-base:9'
           registry_opts_pull:
           - '--tls-verify=false'
 
           # Publish SquashFS image to local S3
-          publish_s3: 'http://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:9000'
+          publish_s3: 'http://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.s3.api_port }}'
           s3_prefix: 'compute/base/'
           s3_bucket: 'boot-images'
           # Publish OCI image to container registry
@@ -528,7 +544,7 @@ images:
           # NOTE: the publish_registry setting here may be used by other
           #       image builders as their 'parent' URL. Make sure if you
           #       change this you change those items as well.
-          publish_registry: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:5000/demo'
+          publish_registry: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.registry.api_port }}/demo'
           registry_opts_push:
           - '--tls-verify=false'
 
@@ -559,12 +575,12 @@ images:
           # NOTE: this uses the registry publication path in the
           #       'compute-base-rocky9' image builder. Make sure if you
           #       change that you change this as well.
-          parent: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:5000/{{ hosting_config.cluster_name }}/compute-base:rocky9'
+          parent: '{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.registry.api_port }}/{{ hosting_config.cluster_name }}/compute-base:rocky9'
           registry_opts_pull:
           - '--tls-verify=false'
 
           # Publish to local S3
-          publish_s3: 'http://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:9000'
+          publish_s3: 'http://{{ hosting_config.net_head_hostname }}.{{ hosting_config.net_head_domain }}:{{ openchami_config.s3.api_port }}'
           s3_prefix: 'compute/debug/'
           s3_bucket: 'boot-images'
         packages:
