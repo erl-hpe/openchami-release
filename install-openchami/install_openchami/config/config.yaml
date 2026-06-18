@@ -407,11 +407,13 @@ openchami_config:
   registry:
     api_port: 5000
 
-  # The `cloud_init` section is a placholder for future configuration of
-  # Cloud Init in this config and contains the `enabled` flag which
-  # indicates whether OpenCHAMI is providing a cloud-init server or not.
-  cloud_init:
-    provided: false
+  # The 'metadata_service' setting tells the installer what kind of
+  # metadata server is in use by OpenCHAMI so that the right commands
+  # and data can be generated. There is a legacy 'cloud-init' setting
+  # and a newer 'metadata-service' setting. This describes where the
+  # boot time metadata comes from when running cloud-init on the managed
+  # nodes.
+  metadata_service: metadata-service
 
 # The 'nodes' section provides information about the managed nodes to be
 # created / managed by OpenCHAMI. It is used in the 'host' deployment

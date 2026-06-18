@@ -33,9 +33,7 @@ ROCKY_DIRS=(
 
 WORK_DIRS=(
     "${DEPLOY_DIR}/boot"
-{%- if openchami_config.cloud_init.provided %}
-    "${DEPLOY_DIR}/cloud-init"
-{%- endif %}
+    "${DEPLOY_DIR}/boot-metadata"
 )
 
 S3_PUBLIC_BUCKETS=(
@@ -379,29 +377,77 @@ ochami bss boot params set -d @"${DEPLOY_DIR}/boot/${ACTIVE_BOOT_CONFIG}"
 {%- endif %}
 
 
-{%- if openchami_config.cloud_init.provided %}
 # Set up cloud-init for some basics...
 #
 # First the global cloud-init metadata
 # XXX - Need some templating here...
 rm -f ~/.ssh/id_rsa*
 ssh-keygen -t rsa -q -f ~/.ssh/id_rsa -N ""
-mkdir -p "${DEPLOY_DIR}"/cloud-init
-cat <<EOF | tee "${DEPLOY_DIR}"/cloud-init/ci-defaults.yaml
+mkdir -p "${DEPLOY_DIR}"/boot-metadata
+{%- if openchami_config.metadata_service == "metadata-service" %}
+cat <<EOF | tee "${DEPLOY_DIR}"/boot-metadata/md-defaults.yaml
+---
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  base_url: "http://${MANAGEMENT_HEADNODE_IP}:8081/metadata-service"
+  cluster_name: "${CLUSTER_NAME}"
+  nid_length: 3
+  public_keys:
+    - "$(cat ~/.ssh/id_rsa.pub)"
+  short_name: "nid-"
+EOF
+ochami metadata defaults add \
+       -d "$(yaml_to_json < "${DEPLOY_DIR}"/boot-metadata/md-defaults.yaml)"
+
+# Next the cloud init metadata for the managed node groups...
+for group in $(node_groups); do
+    cat <<EOF | tee "${DEPLOY_DIR}/boot-metadata/md-group-${group}.yaml"
+metadata:
+  name: "${group}"
+spec:
+  description: "${group} nodes"
+  template: |
+    ## template: jinja
+    #cloud-config
+    merge_how:
+    - name: list
+      settings: [append]
+    - name: dict
+      settings: [no_replace, recurse_list]
+    users:
+      - name: testuser
+        ssh_authorized_keys:
+        - "$(cat ~/.ssh/id_rsa.pub)"
+      - name: root
+        ssh_authorized_keys:
+        - "$(cat ~/.ssh/id_rsa.pub)"
+    disable_root: false
+  metadata: {}
+EOF
+    ochami metadata group add \
+           -d "$(yaml_to_json < "${DEPLOY_DIR}/boot-metadata/md-group-${group}.yaml")"
+done
+{%- for node in nodes %}
+ochami metadata instance add \
+       -d '{"spec": {"instance_id": "{{ node.name }}", "local_hostname": "{{ node.hostname}} "}}'
+{% endfor %}
+{%- elif openchami_config.metadata_service == "cloud-init" %}
+cat <<EOF | tee "${DEPLOY_DIR}"/boot-metadata/ci-defaults.yaml
 ---
 base-url: "http://${MANAGEMENT_HEADNODE_IP}:8081/cloud-init"
 cluster-name: "${CLUSTER_NAME}"
 nid-length: 3
 public-keys:
   - "$(cat ~/.ssh/id_rsa.pub)"
-short-name: "nid"
+short-name: "nid-"
 EOF
 ochami cloud-init defaults set -f yaml \
-       -d @"${DEPLOY_DIR}"/cloud-init/ci-defaults.yaml
+       -d @"${DEPLOY_DIR}"/boot-metadata/ci-defaults.yaml
 
 # Next the cloud init metadata for the managed node groups...
 for group in $(node_groups); do
-    cat <<EOF | tee "${DEPLOY_DIR}/cloud-init/ci-group-${group}.yaml"
+    cat <<EOF | tee "${DEPLOY_DIR}/boot-metadata/ci-group-${group}.yaml"
 - name: ${group}
   description: "${group} group config"
   file:
@@ -422,12 +468,14 @@ for group in $(node_groups); do
       disable_root: false
 EOF
     ochami cloud-init group set -f yaml \
-           -d @"${DEPLOY_DIR}/cloud-init/ci-group-"${group}".yaml"
+           -d @"${DEPLOY_DIR}/boot-metadata/ci-group-"${group}".yaml"
 done
 {%- for node in nodes %}
 ochami cloud-init node set \
        -d '[{"id":"{{ node.name }}","local-hostname":"{{ node.hostname}} "}]'
 {% endfor %}
+{%- else %}
+info "No recognized metadata service configured, skipping metadata config..."
 {%- endif %}
 
 {%- for node in nodes %}

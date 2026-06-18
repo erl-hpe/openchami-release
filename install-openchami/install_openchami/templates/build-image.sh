@@ -70,7 +70,9 @@ function generate-boot-config() {
     [[ "${uri_initramfs}" != "" ]] || _bi_fail "no initrd image found that matches '${image_subpath}'"
     local uri_kernel="$(echo "${uris}" | cut -d' ' -f3)"
     [[ "${uri_kernel}" != "" ]] || _bi_fail "no kernel image found that matches '${image_subpath}'"
-{%- if openchami_config.cloud_init.provided %}
+{%- if openchami_config.metadata_service == "metadata-service" %}
+    local cloud_init="cloud-init=enabled ds=nocloud-net;s=http://${headnode_ip}:8081/metadata-service"
+{%- elif openchami_config.metadata_service == "cloud-init" %}
     local cloud_init="cloud-init=enabled ds=nocloud-net;s=http://${headnode_ip}:8081/cloud-init"
 {%- else %}
     local cloud_init=""
