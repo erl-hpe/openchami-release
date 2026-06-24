@@ -389,6 +389,31 @@ class Config:
         """
         # Nothing to do, just return
 
+    def __prep_openchami_config(self):
+        """Prepare the 'openchami_config' section of the config. Fill
+
+
+        """
+        openchami_env = self.config['openchami_config']['openchami_env']
+        docker_stepca_init_password = (
+            openchami_env.get('DOCKER_STEPCA_INIT_PASSWORD', None)
+        )
+        if not docker_stepca_init_password:
+            openchami_env['DOCKER_STEPCA_INIT_PASSWORD'] = generate_password(
+                length=20
+            )
+        # pylint: disable=invalid-name
+        docker_stepca_init_provisioner_password = (
+            openchami_env.get('DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD', None)
+        )
+        if not docker_stepca_init_provisioner_password:
+            openchami_env['DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD'] = (
+                generate_password(length=20)
+            )
+        # Put it back just in case. This should be implicit but it
+        # never hurts to make it explicit.
+        self.config['openchami_config']['openchami_env'] = openchami_env
+
     def prepare(self):
         """Prepare the Installer to install the system by reading in
         the configuration, merging the overlays onto the
@@ -401,6 +426,7 @@ class Config:
         self.__prep_hosting()
         self.__prep_nodes()
         self.__prep_images()
+        self.__prep_openchami_config()
         return 0
 
     def __check_and_get_dict_key(
@@ -870,6 +896,22 @@ class Config:
                     )
                 )
 
+    def __valid_openchami_config(self):
+        """Validate the 'openchami_config' section of the
+        configuration.
+
+        """
+        openchami_config = self.config.get('openchami_config', {})
+        openchami_env = openchami_config.get('openchami_env', {})
+        if not openchami_config:
+            raise ConfigError(
+                "'openchami_config' is missing or empty"
+            )
+        if not openchami_env:
+            raise ConfigError(
+                "'openchami_env' in 'openchami_config' is missing or empty"
+            )
+
     def validate(self):
         """Validate the final configuration to be sure that everything
         is reasonable before attempting an installation.
@@ -889,6 +931,7 @@ class Config:
         self.__valid_hosting()
         self.__valid_nodes()
         self.__valid_images()
+        self.__valid_openchami_config()
 
     def show_config(self):
         """Display the configuration resulting from applying the base

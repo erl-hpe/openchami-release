@@ -356,14 +356,15 @@ openchami_config:
     # Create an initial ACME provisioner for the CA (or not, if not 'true')
     DOCKER_STEPCA_INIT_ACME: 'true'
     # The password for the encrypted CA keys and the default CA
-    # provisioner
-    # ERIC - MAKE THIS A GENERATED PASSWORD
-    DOCKER_STEPCA_INIT_PASSWORD: supersecretpassword
+    # provisioner. If this is specified the specified value will be
+    # used. If it is null or missing, it will be generated.
+    DOCKER_STEPCA_INIT_PASSWORD: null
     # The label for the initial admin (JWK) provisioner.
     DOCKER_STEPCA_INIT_PROVISIONER_NAME: Admin
-    # The password for the initial admin (JWK) provisioner.
-    #ERIC - MAKE THIS A GENERATED PASSWORD
-    DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD: provisionerpassword
+    # The password for the initial admin (JWK) provisioner. If this is
+    # specified the specified value will be used. If it is null or
+    # missing, it will be generated.
+    DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD: null
 
     # Useful URLs
     # The URL that reaches SMD
@@ -410,7 +411,7 @@ openchami_config:
   # The 'metadata_service' setting tells the installer what kind of
   # metadata server is in use by OpenCHAMI so that the right commands
   # and data can be generated. There is a legacy 'cloud-init' setting
-  # and a newer 'metadata-service' setting. This describes where the
+  # and a newer 'metadata-service' setting. This identifies where the
   # boot time metadata comes from when running cloud-init on the managed
   # nodes.
   metadata_service: metadata-service
