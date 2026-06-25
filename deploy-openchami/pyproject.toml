@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) Copyright 2026 OpenCHAMI a Series of LF Projects, LLC
 # SPDX-License-Identifier: MIT
 [project]
-name = 'install_openchami'
+name = 'deploy_openchami'
 authors = [
     { name = 'Eric Lund', email = 'eric.lund@hpe.com' },
 ]
@@ -15,7 +15,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
 ]
-description = '2025 Tutorial Based Installer for OpenCHAMI Release content'
+description = 'Quadlet Based Deployment Tool for OpenCHAMI Release content'
 dependencies = [
     # yaml - this comment reduces conflicts in dependabot PRs
     'pyyaml~=6.0',
@@ -37,7 +37,7 @@ readme = { file = 'README.md', content-type = 'text/markdown' }
 requires-python = '>=3.9'
 
 [metadata]
-url = 'https://github.com/erl-hpe/install-openchami'
+url = 'https://github.com/erl-hpe/deploy-openchami-quadlet'
 
 license = "MIT"
 # Note: the LICENSE file here is populated by the RPM installer that
@@ -73,15 +73,15 @@ test = [
 ]
 
 [project.scripts]
-install_openchami = "install_openchami.install_openchami:entry"
+deploy_openchami = "deploy_openchami.deploy_openchami:entry"
 
 # Defines which folders belong to our package.
 [tool.setuptools.packages.find]
-include = ['install_openchami*']
+include = ['deploy_openchami*']
 exclude = []
 
 [tool.setuptools.package-data]
-install_openchami = [
+deploy_openchami = [
     "templates/*",
     "config/*",
 ]

@@ -1,14 +1,14 @@
-# OpenCHAMI Installer File Templates
+# OpenCHAMI Deployment Tool File Templates
 
 These files provide the templates referred to by the `manifest'
 section of the configuration. Some of them are scripts used directly
-by the installer and some of them are supporting or system data files
-installed by the installer. Look in the `manifest` section of the
-config to see where they each get installed. To generate the final
-files from them without running a full installation, use
+by the deployment tool and some of them are supporting or system data
+files created by the deployment tool. Look in the `manifest` section of
+the config to see where they each get created. To generate the final
+files from them without running a full deployment, use
 
 ```
-install_openchami -f
+deploy_openchami -f
 ```
 
 The generated results can then be examined in situ.

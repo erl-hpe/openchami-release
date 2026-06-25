@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # pylint: disable=consider-using-f-string
-"""Exception classes to support the OpenCHAMI installer
+"""Exception classes to support the OpenCHAMI deployment tool
 
 """
 # pylint: disable=unused-import

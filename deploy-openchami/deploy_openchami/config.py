@@ -3,7 +3,7 @@
 
 # pylint: disable=consider-using-f-string
 """The home of the Config class that holds, validates and prepares the
-configuration for OpenCHAMI installation.
+configuration for OpenCHAMI deployment.
 
 """
 
@@ -76,11 +76,11 @@ MultilineStringSafeDumper.add_representer(
 
 class Config:
     """The OpenCHAMI configuration class that holds, validates and
-    prepares the configuration for OpenCHAMI installation.
+    prepares the configuration for OpenCHAMI deployment.
 
     """
     def __init__(self, options, config_overlays):
-        """Construct the installer instance using the config overlays
+        """Construct the config instance using the config overlays
         and options provided from the caller.
 
         """
@@ -415,8 +415,8 @@ class Config:
         self.config['openchami_config']['openchami_env'] = openchami_env
 
     def prepare(self):
-        """Prepare the Installer to install the system by reading in
-        the configuration, merging the overlays onto the
+        """Prepare the configuration for deploying the system by
+        reading in the configuration, merging the overlays onto the
         configuration, and generating any configuration data that need
         to be generated.
 
@@ -516,16 +516,16 @@ class Config:
                 raise ConfigError(
                     "'manifest.deployment_user.username' user '%s' is not "
                     "provisioned as a user on this host "
-                    "try running installer in 'prep-host' mode "
-                    "before installing OpenCHAMI" % username
+                    "try running openchami_deploy in 'prep-host' mode "
+                    "before deploying OpenCHAMI" % username
                 ) from err
             try:
                 primary_info = getgrnam(primary_group)
             except KeyError as err:
                 raise ContextualError(
                     "error looking up deployment user primary "
-                    "group '%s' (try running installer in 'prep-host' "
-                    "mode before installing OpenCHAMI) - %s" % (
+                    "group '%s' (try running openchami_deploy in 'prep-host' "
+                    "mode before deploying OpenCHAMI) - %s" % (
                         primary_group, str(err)
                     )
                 ) from err
@@ -537,14 +537,14 @@ class Config:
             except KeyError as err:
                 raise ContextualError(
                     "error looking up deployment user supplmentary "
-                    "groups (try running installer in 'prep-host' "
-                    "mode before installing OpenCHAMI) - %s" % str(err)
+                    "groups (try running deploy_openchami in 'prep-host' "
+                    "mode before deploying OpenCHAMI) - %s" % str(err)
                 ) from err
             if user_info.pw_gid != primary_info.gr_gid:
                 raise ConfigError(
                     "deployment user '%s' does not have group '%s' as "
-                    "its primary group try running installer in 'prep-host' "
-                    "mode before installing OpenCHAMI" % (
+                    "its primary group try running openchami_deploy in "
+                    "'prep-host' mode before deploying OpenCHAMI" % (
                         username,
                         primary_group
                     )
@@ -553,8 +553,8 @@ class Config:
                 if username not in group_info.gr_mem:
                     raise ConfigError(
                         "user '%s' is not a member of group '%s' as a "
-                        "supplementary group try running installer in "
-                        "'prep-host' mode before installing OpenCHAMI" % (
+                        "supplementary group try running openchami_deploy "
+                        "in 'prep-host' mode before deploying OpenCHAMI" % (
                             username,
                             group_info.gr_name
                         )
@@ -632,7 +632,7 @@ class Config:
                 "value" % (file_key, mode)
             )
         # The owner and group fields in a file manifest are optional,
-        # but they have to be strings and exist on the installation
+        # but they have to be strings and exist on the deployment
         # host if they are present. Also, if we are doing host
         # preparation, an explicit and existing owner and group must
         # be present.
@@ -759,7 +759,7 @@ class Config:
         self.__valid_manifest_deploy_user()
         self.__valid_manifest_files()
         self.__valid_required_annotation('image-builder')
-        self.__valid_required_annotation('install-entrypoint', 1)
+        self.__valid_required_annotation('deploy-entrypoint', 1)
         self.__valid_required_annotation('host-prep-entrypoint', 1)
 
     def __valid_bmcs(self):
@@ -914,7 +914,7 @@ class Config:
 
     def validate(self):
         """Validate the final configuration to be sure that everything
-        is reasonable before attempting an installation.
+        is reasonable before attempting a deployment.
 
         """
         self.load_config()

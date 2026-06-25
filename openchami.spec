@@ -59,20 +59,20 @@ chmod 0700 %{buildroot}/usr/sbin/tokensmith_bootstrap_token
 chmod 600 %{buildroot}/etc/openchami/configs/openchami.env
 chmod 644 %{buildroot}/etc/openchami/configs/*
 
-# 2) Put the 'install-openchami' source on the system so we can
+# 2) Put the 'deploy-openchami' source on the system so we can
 # install it during 'post'. Also create a wrapper script to run
-# 'install_openchami' from its shared virtual environment once
+# 'deploy_openchami' from its shared virtual environment once
 # this RPM finishes installing.
 mkdir -p \
-      "%{buildroot}/opt/install-openchami-%{version}/src" \
+      "%{buildroot}/opt/deploy-openchami-%{version}/src" \
       "%{buildroot}/usr/bin"
-cp -a install-openchami/* "%{buildroot}/opt/install-openchami-%{version}/src"
-cp LICENSE "%{buildroot}/opt/install-openchami-%{version}/src/LICENSE"
-cat <<EOF > %{buildroot}/usr/bin/install_openchami
+cp -a deploy-openchami/* "%{buildroot}/opt/deploy-openchami-%{version}/src"
+cp LICENSE "%{buildroot}/opt/deploy-openchami-%{version}/src/LICENSE"
+cat <<EOF > %{buildroot}/usr/bin/deploy_openchami
 #! /bin/bash
-exec /opt/install-openchami-%{version}/venv/bin/python3 -m install_openchami "\$@"
+exec /opt/deploy-openchami-%{version}/venv/bin/python3 -m deploy_openchami "\$@"
 EOF
-chmod +x %{buildroot}/usr/bin/install_openchami
+chmod +x %{buildroot}/usr/bin/deploy_openchami
 
 %files
 %license LICENSE
@@ -88,8 +88,8 @@ chmod +x %{buildroot}/usr/bin/install_openchami
 /etc/openchami/pg-init/multi-psql-db.sh
 /usr/bin/openchami-certificate-update
 /usr/sbin/tokensmith_bootstrap_token
-/usr/bin/install_openchami
-/opt/install-openchami-%{version}/
+/usr/bin/deploy_openchami
+/opt/deploy-openchami-%{version}/
 
 %pre
 if [ -f /etc/containers/systemd/coresmd.container ]; then
@@ -99,13 +99,13 @@ fi
 
 %post
 # Create a shared python virtual environmnet in which to install
-# 'install-openchami' and then use the pip from that virtual
+# 'deploy-openchami' and then use the pip from that virtual
 # environment to install it. By doing it here instead of in the
 # 'build' or 'install' stage we keep this RPM from becoming
 # architecture dependent (due to inclusion of the python binary) and
 # keep the size of the RPM down.
-export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_INSTALL_OPENCHAMI="%{version}"
-export OPT_DIR="/opt/install-openchami-%{version}"
+export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_DEPLOY_OPENCHAMI="%{version}"
+export OPT_DIR="/opt/deploy-openchami-%{version}"
 python3 -m venv "$OPT_DIR/venv"
 "$OPT_DIR/venv/bin/pip" install --upgrade pip
 "$OPT_DIR/venv/bin/pip" install "$OPT_DIR/src"
@@ -120,5 +120,5 @@ systemctl stop firewalld
 # reload systemd on uninstall
 systemctl daemon-reload
 
-# Remove all the install-openchami stuff installed during 'post'
-rm -rf /opt/install-openchami-%{version}
+# Remove all the deploy-openchami stuff installed during 'post'
+rm -rf /opt/deploy-openchami-%{version}

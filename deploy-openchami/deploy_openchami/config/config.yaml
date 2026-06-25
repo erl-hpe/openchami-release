@@ -10,12 +10,12 @@
 deployment_mode: host
 
 # The manifest section contains information about the files to be
-# generated in preparation for installing OpenCHAMI. Most files will be
+# generated in preparation for deploying OpenCHAMI. Most files will be
 # predefined and found in the 'templates' sub-directory of the
-# 'install_openchami' module. Some files are generated directly from
-# config. Two files are installation scripts. One installs OpenCHAMI and
-# one prepares the management host for installing OpenCHAMI. These are
-# identified by the 'install-entrypoint' and 'host-prep-entrypoint'
+# 'deploy_openchami' module. Some files are generated directly from
+# config. Two files are deployment scripts. One deploys OpenCHAMI and
+# one prepares the management host for deploying OpenCHAMI. These are
+# identified by the 'deploy-entrypoint' and 'host-prep-entrypoint'
 # annotations respectively. There must be exectly one file with each
 # annotation in the config. Other annotations are used by the file
 # templates to identify target files for a given action. For example,
@@ -23,22 +23,22 @@ deployment_mode: host
 manifest:
   # 'deployment_user' identifies the username of the user on the host
   # who will be running the deployment. By default this is 'rocky'. This
-  # user must already exist on the host where installation is run and
+  # user must already exist on the host where deployment is run and
   # must be set up for passwordless 'sudo' access. All rendered files
   # generated from this manifest will be owned by this user and its
   # primary group unless otherwise specified in the manifest entry for
   # the file.
   #
   # The primary group ID and user ID will be filled in in this section
-  # by the installer as 'deployment_user.uid' and 'deployment_user.gid'
-  # based on information queried from the host and can be used in file
-  # templates as needed
+  # by the deployment tool as 'deployment_user.uid' and
+  # 'deployment_user.gid' based on information queried from the host and
+  # can be used in file templates as needed
   deployment_user:
     username: rocky
     primary_group: rocky     # used for host preparation
     supplementary_groups: [] # user for host preparation
-    uid: null  # This will always be filled in by the installer
-    gid: null  # This will always be filled in by the installer
+    uid: null  # This will always be filled in by the deployment tool
+    gid: null  # This will always be filled in by the deployment tool
   # The deployment directory is where deployment operations are run
   # from. All files that have a 'target' specification that is a
   # relative pathname are located below the deployment directory.
@@ -46,7 +46,7 @@ manifest:
   # 'files' contains the information about each file to be
   # deployed. If a file has a 'template_name' the template is picked up
   # from that named file among the templates delivered with the
-  # 'install_openchami' module and rendered to the 'target' location on
+  # 'deploy_openchami' module and rendered to the 'target' location on
   # the host. If not the file is generated somehow, and the details are
   # in the description. If 'mkdir' is present and 'true' then the parent
   # directory path will be created as needed with and each created
@@ -98,8 +98,8 @@ manifest:
       mode: "600"
       mkdir: false
     bmc_info:
-      # This template is delivered with the install_openchami module and
-      # gets installed into a system directory with mode "rw-------"
+      # This template is delivered with the deploy_openchami module and
+      # gets created in a system directory with mode "rw-------"
       # and root ownership because it contains some potentially
       # sensitive data.
       template_name: bmc_info.json
@@ -158,11 +158,11 @@ manifest:
       target: openchami-net.xml
       mode: "644"
       mkdir: true
-    openchami-install:
+    openchami-deploy:
       annotations:
-        - install-entrypoint
-      template_name: OpenCHAMI-Install.sh
-      target: OpenCHAMI-Install.sh
+        - deploy-entrypoint
+      template_name: OpenCHAMI-Deploy.sh
+      target: OpenCHAMI-Deploy.sh
       mode: "755"
       mkdir: true
     prep-setup:
@@ -207,11 +207,11 @@ manifest:
       mkdir: true
 
 # The following provides BMC information. For simple stand-alone
-# installs, there are no "real" BMCs (unless your system has them and
+# deployments, there are no "real" BMCs (unless your system has them and
 # you want them configured). Real systems and vTDS deployed systems do
 # have "real" BMCs and they should be configured here.
 #
-# Even for simple standalone installs, though, we do need to have some
+# Even for simple standalone deployments, though, we do need to have some
 # basic BMC information in order to be able  to compose the static
 # discovery information, so we have a BMC defined here, which also
 # serves as an example.
@@ -260,10 +260,10 @@ hosting_config:
 # be run on it.
 openchami_config:
   # The file '/etc/openchami/openchami.env' contains environment
-  # variables used by services to configure them. The installer composes
-  # an intermediate YAML file that is used to populate this file. The
-  # 'openchami_env' section is used to generate that file and can
-  # contain quoted Jinja2 template data in its values taken from
+  # variables used by services to configure them. The deployment tool
+  # composes an intermediate YAML file that is used to populate this
+  # file. The 'openchami_env' section is used to generate that file and
+  # can contain quoted Jinja2 template data in its values taken from
   # elsewhere in this config. Ultimately, every environment variable
   # here and any you add in an overlay will wind up in
   # '/etc/openchami/openchami.env'
@@ -378,22 +378,22 @@ openchami_config:
   # The coredhcp configuration has an old form in which all of the
   # plug-in parameters are positional and a newer form in which all of the
   # plug-in parameters are named. The `coredhcp_named_parameters` flag tells
-  # the installer to use named parameters if it is true and positional
+  # the deployment tool to use named parameters if it is true and positional
   # parameters if it is false when templating this configuration.
   coredhcp_named_parameters: true
 
-  # The 'get-ochami-token' command provided by the installer allows a
-  # user to obtain an OAUTH token for use with SMD through ochami. At
-  # least temporarily, there is no working 'gen_access_token' command
-  # available in OpenCHAMI, but there might be again, or you might be
-  # installing an older version of OpenCHAMI where there was one. The
-  # 'gen_access_token_works' flag tells the installer whether to use
-  # 'gen_access_token' as the basis of 'get-ochami-token' or supply
-  # explicit code for that purpose.
+  # The 'get-ochami-token' command provided by the deployment tool
+  # allows a user to obtain an OAUTH token for use with SMD through
+  # ochami. At least temporarily, there is no working 'gen_access_token'
+  # command available in OpenCHAMI, but there might be again, or you
+  # might be deploying an older version of OpenCHAMI where there was
+  # one. The 'gen_access_token_works' flag tells the deployment tool
+  # whether to use 'gen_access_token' as the basis of 'get-ochami-token'
+  # or supply explicit code for that purpose.
   gen_access_token_works: false
 
-  # The 'use_boot_service' flag tells the installer that OpenCHAMI is
-  # using the 'boot-service' boot configuration server instead of
+  # The 'use_boot_service' flag tells the deployment tool that OpenCHAMI
+  # is using the 'boot-service' boot configuration server instead of
   # BSS. This changes the way the boot configuration is structured and
   # used during deployment.
   use_boot_service: true
@@ -408,8 +408,8 @@ openchami_config:
   registry:
     api_port: 5000
 
-  # The 'metadata_service' setting tells the installer what kind of
-  # metadata server is in use by OpenCHAMI so that the right commands
+  # The 'metadata_service' setting tells the deployment tool what kind
+  # of metadata server is in use by OpenCHAMI so that the right commands
   # and data can be generated. There is a legacy 'cloud-init' setting
   # and a newer 'metadata-service' setting. This identifies where the
   # boot time metadata comes from when running cloud-init on the managed

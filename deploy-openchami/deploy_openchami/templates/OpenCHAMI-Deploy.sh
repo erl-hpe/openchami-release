@@ -106,10 +106,10 @@ fi
 {% endfor %}
 
 # In cluster mode, we will switch the DNS to refer to the coresmd-core-dns
-# server, which will not remain running during a re-install. To avoid
+# server, which will not remain running during a re-deploy. To avoid
 # being left without a name server, we need to make sure we are pointing
-# to the external name server prior to cleaning up and re-installing. This
-# is also the desired state when we begin installing for the first time,
+# to the external name server prior to cleaning up and re-deploying. This
+# is also the desired state when we begin deploying for the first time,
 # so make that switch unconditionally here.
 info "Switching to the cluster external DNS nameserver"
 switch_dns "${MANAGEMENT_EXT_NAMESERVER}" "${CLUSTER_DOMAIN}"
@@ -244,8 +244,8 @@ if [ "${retry}" -eq 10 ]; then
 fi
 
 # Create a fresh version of /etc/openchami/configs/openchami.env for
-# the quadlets to use. This reflects the installer config, not what was
-# shipped with the release.
+# the quadlets to use. This reflects the deployment tool config, not
+# what was shipped with the release.
 create_openchami_env
 
 # Start OpenCHAMI
@@ -272,7 +272,7 @@ echo y | sudo ochami config cluster set --system --default "${CLUSTER_NAME}" \
 # Set up the 'rocky' user's S3 configuration
 cp "${DEPLOY_DIR}/s3cfg" ~/.s3cfg
 
-# All the rendered files have been installed in their respective
+# All the rendered files have been placed in their respective
 # locations, time to set things up and build some images.
 #
 # The first thing we need is credentials to interact with
@@ -519,7 +519,7 @@ sudo virt-install \
 {%- endfor %}
 
 # Wait for compute node(s) to come up and try to SSH to compute
-# node(s) as a sanity check of the installation.
+# node(s) as a sanity check of the deployment.
 {%- for node in nodes %}
 ssh_to_compute_node "$(printf "nid-%3.3d" {{ node.nid }})" "${DEPLOY_USER}"
 {%- endfor %}

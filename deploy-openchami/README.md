@@ -1,56 +1,56 @@
-# OpenCHAMI Installer
+# OpenCHAMI Quadlet Based Deployment Tool
 
-The OpenCHAMI Installer consists of a Python wrapper and a base
-configuration designed to deploy OpenCHAMI onto a host node using the
-quadlet implementation of OpenCHAMI described in the [OpenCHAMI
-Tutorial](https://openchami.org/docs/tutorial/) using a "`host` mode"
-configuration that creates and boots a single virtual managed
-(compute) node co-resident on the OpenCHAMI headnode host. The
-installer can be used either to deploy OpenCHAMI and the virtual
+The OpenCHAMI Quadlet Based Deployment Tool consists of a Python
+wrapper and a base configuration designed to deploy OpenCHAMI onto a
+host node using the quadlet implementation of OpenCHAMI described in
+the [OpenCHAMI Tutorial](https://openchami.org/docs/tutorial/) using a
+"`host` mode" configuration that creates and boots a single virtual
+managed (compute) node co-resident on the OpenCHAMI headnode host. The
+deployment tool can be used either to deploy OpenCHAMI and the virtual
 managed node on physical hardware or on a virtual machine, as long as
 the virtual machine supports nested virtualization and has sufficient
 resources to run both the OpenCHAMI headnode software and the virtual
 managed node.
 
-The OpenCHAMI Installer can also run in a "`cluster` mode" in which
-the OpenCHAMI head node and all managed nodes are connected to a
-physical or virtual network cluster where the managed nodes are not
-co-resident on the host node. In this case, the assumption is that the
-managed nodes can be powered on, powered off, and reset using RedFish
-calls to RedFish instances running on Base Board Management
-Controllers (BMCs) accesible across a network from the headnode.
+The deployment tool can also run in a "`cluster` mode" in which the
+OpenCHAMI head node and all managed nodes are connected to a physical
+or virtual network cluster where the managed nodes are not co-resident
+on the host node. In this case, the assumption is that the managed
+nodes can be powered on, powered off, and reset using RedFish calls to
+RedFish instances running on Base Board Management Controllers (BMCs)
+accesible across a network from the headnode.
 
 ## System Requirements
 
-At present, the OpenCHAMI Installer uses the 'dnf' package manager,
-which is an RPM based package manager primarily used on RedHat
-systems. The installer expects to run on a Rocky Linux or similar
+At present, the deployment tool uses the 'dnf' package manager, which
+is an RPM based package manager primarily used on RedHat systems. The
+deployment tool expects to run on a Rocky Linux or similar
 distribution of Linux.
 
-The installer can currently successfully install OpenCHAMI and
+The deployment tool can currently successfully deploy OpenCHAMI and
 bring up virtual compute nodes on x86-64 (amd64) and AMD-64 (aarch64)
 hosts. The default configuration assumes x86-64. This README provides
 an example configuration overlay to enable AMD-64 operation, as well
 as a broader description of configuration overlays.
 
-For `host` mode operation, the OpenCHAMI Installer recommends a
-minimum of 4GB of memory, 4 CPU cores and 40GB of free disk space on
-the headnode. If the headnode is a VM it must support nested
-virtualization for the installer to work in `host` mode. On MacOS,
-currently, nested virtualization is only supported by VMs running on
-an M3 or better system under Apple Virtualization not those running
-under KVM.
+For `host` mode operation, the deployment tool recommends a minimum of
+4GB of memory, 4 CPU cores and 40GB of free disk space on the
+headnode. If the headnode is a VM it must support nested
+virtualization for the deployment tool to work in `host` mode. On
+MacOS, currently, nested virtualization is only supported by VMs
+running on an M3 or better system under Apple Virtualization not those
+running under KVM.
 
-The installer requires a minimum version 3.9 of Python installed on
-the headnode.
+The deployment tool requires a minimum version 3.9 of Python installed
+on the headnode.
 
-The user running the OpenCHAMI Installer must either be `root` or have
+The user running the deployment tool must either be `root` or have
 `sudo` access on the headnode.
 
-The host system must have `openchami` (this package) installed on it
-either by means of downloading the release RPM and installing it or by
-means of obtaining the source code, building the RPM and installing
-it. To install from the release RPM, do the following:
+The host system must have `openchami` installed on it either by means
+of downloading the release RPM and installing it or by means of
+obtaining the source code, building the RPM and installing it. To
+install from the release RPM, do the following:
 
 ```
 # Identify the latest release RPM
@@ -71,31 +71,62 @@ Installation from source is described in the
 [OpenCHAMI Release README](https://github.com/OpenCHAMI/release/blob/main/README.md#openchami-releases).
 
 
-## Installing and Running the Installer
+## Installing and Running the Deployment Tool
 
-The installer is installed on the OpenCHAMI headnode when the
-OpenCHAMI Release RPM is installed. This permits the installer to
-track with versions of the OpenCHAMI Release repository. The steps
-involved in installing and running the installer are as follows:
-
-1. Use the OpenCHAMI Installer to prepare the headnode for OpenCHAMI
-installation:
+The deployment tool works best when it is installed in a Python
+virtual environment on the host you plan to use as a head node. To
+create a virtual environment named `venv` in your home directory, make
+sure you have at least Python 3.9 installed and run:
 
 ```shell
-sudo install_openchami -p
+python3 -m venv ~/venv
 ```
 
-2. Use the OpenCHAMI Installer to install OpenCHAMI and start a
-virtual compute node:
+Once you have created the virtual environment (for example `~/venv`)
+activate it as follows:
+
+```
+source ~/venv/bin/activate
+```
+
+To install the deployment tool use `git` to clone this repository (
+[https://github.com/hpe-erl/deploy-openchami-quadlet](https://github.com/hpe-erl/deploy-openchami-quadlet)
+) and check out the version of the deployment tool you want. The
+version of the deployment tool you need depends on the version of
+OpenCHAMI you are deploying. For compatibility information see this
+[CompatibilityGuide](COMPATIBILITY.md).
+
+Once you have the correct version checked out, enter the root directory of the cloned repository and use
 
 ```shell
-sudo install_openchami
+pip install .
+```
+
+to install it in your virtual environment.
+
+Now you are ready to use the deployment tool. This is done in two
+stages. The first needs to be run only when you first start using a
+brand-new headnode. The second needs to be run each time you want to
+(re-)deploy OpenCHAMI on your headnode.
+
+1. Use the deployment tool to prepare the headnode for OpenCHAMI
+deployment:
+
+```shell
+sudo deploy_openchami -p
+```
+
+2. Use the deployment tool to deploy OpenCHAMI and start a virtual
+compute node:
+
+```shell
+sudo deploy_openchami
 ```
 
 __NOTE: If your are running on an arm64 (aarch64) host, you will need
 to change the repository URLs in the default image builder
 configuration. See the 'Configuration' section below to learn how to
-do this with a configuration overlay.__
+do this using a configuration overlay.__
 
 Assuming this completes successfully, you should be able to become the
 deployment user (by default this is `rocky`) and SSH to your virtual
@@ -108,11 +139,11 @@ ssh root@compute-001
 
 ## Configuration
 
-The OpenCHAMI Installer contains a rich configuration that allows for
-both future changes to OpenCHAMI and changes to the way OpenCHAMI is
-installed on your headnode. This configuration, in turn drives the
-creation of configuration files and scripts used internally to install
-OpenCHAMI. The base configuration drives an installation quite similar
+The deployment tool contains a rich configuration that allows for both
+future changes to OpenCHAMI and changes to the way OpenCHAMI is
+deployed on your headnode. This configuration, in turn drives the
+creation of configuration files and scripts used internally to deploy
+OpenCHAMI. The base configuration drives a deployment quite similar
 to the OpenCHAMI tutorial with virtual managed (compute) nodes. This
 base configuration can be modified at run time by providing the paths
 to one or more YAML format configuration overlays on the command line.
@@ -252,18 +283,18 @@ nodes:
       ip_addr: 10.2.1.35
 ```
 
-### Working with the Installer Configuration
+### Working with the Deployment Tool Configuration
 
 When creating a configuration overlay, it helps to know what the
 configuration to be overlaid looks like, and what the configuration
 looks like after applying the overlay. There are two options to the
-installer that allow you to see the contents of the OpenCHAMI
-Installer configuration. The first option dumps out the entire contents
-of the base configuration file, complete with comments explaining the
+deployment tool that allow you to see the contents of the deployment
+tool configuration. The first option dumps out the entire contents of
+the base configuration file, complete with comments explaining the
 pieces. This is a good place to start:
 
 ```shell
-python3 -m install_openchami -b
+python3 -m deploy_openchami -b
 ```
 
 From there you can cut and paste the necessary pieces to create new
@@ -273,34 +304,34 @@ The second option dumps out the final configuration after applying
 your configuration overlay(s):
 
 ```shell
-python3 -m install_openchami -c amd64_config_overlay.yaml
+python3 -m deploy_openchami -c amd64_config_overlay.yaml
 ```
 
 This configuration may be in a different order from the base
 configuration and is not commented, but it allows you to verify that
 your configuration changes were applied the way you want them.
 
-To validate your OpenCHAMI Installer final configuration, use:
+To validate your deployment tool final configuration, use:
 
 ```shell
-python3 -m install_openchami -v amd64_config_overlay.yaml
+python3 -m deploy_openchami -v amd64_config_overlay.yaml
 ```
 
 This helps ensure that your configuration is correct and
 consistent, and, where possible, required system elements are in place
 to support the configuration you have created.
 
-Install your newly configured OpenCHAMI system by first preparing the
+Deploy your newly configured OpenCHAMI system by first preparing the
 host node using:
 
 ```shell
-sudo install_openchami -p amd64_config_overlay.yaml
+sudo deploy_openchami -p amd64_config_overlay.yaml
 ```
 
-then installing the new configuration using:
+then deploying the new configuration using:
 
 ```shell
-sudo install_openchami amd64_config_overlay.yaml
+sudo deploy_openchami amd64_config_overlay.yaml
 ```
 
 If all went well, you should have OpenCHAMI running on a 64 bit AMD host
@@ -311,28 +342,33 @@ sudo su - rocky
 ssh root@compute-001
 ```
 
-The OpenCHAMI Installer has been designed to be able to be run
-correctly multiple times on the same host with new configurations, so,
-if you tried installing on an AMD system before reading this part, you
-should be able to simply re-run with the new configuration overlay.
+The deployment tool has been designed to be able to be run correctly
+multiple times on the same host with new configurations, so, if you
+tried deploying on an AMD system before reading this part, you should
+be able to simply re-run with the new configuration overlay.
 
 This mechanism also allows you to change many other aspects of how your
-OpenCHAMI system is installed. The AMD overlay was simply a convenient
-way to demonstrate the mechanism and enable AMD installs.
+OpenCHAMI system is deployed. The AMD overlay was simply a convenient
+way to demonstrate the mechanism and enable AMD deployments.
 
 ## Limitations
 
-The OpenCHAMI Installer currently has the following
-limitations. Except where otherwise noted, solutions to these are
-being investigated and implemented:
+The deployment tool currently has the following limitations. Except
+where otherwise noted, solutions to these are being investigated and
+implemented:
 
-- there is no 'remove' operation in the OpenCHAMI Installer
-- while the OpenCHAMI Installer tries to be re-usable, it is not
+- there is no 'remove' operation in the deployment tool
+- while the deployment tool tries to be re-runable, it is not
   perfectly idempotent, so situations may arise where re-running the
-  installer fails leaving the host in an inconsitent state. There are
-  currently no known instances of this, but with arbitrary
+  deployment tool fails leaving the host in an inconsitent state. There
+  are currently no known instances of this, but with arbitrary
   configuration overlays, not every case can be tested.
-- along similar lines, the OpenCHAMI installer is not protected against
+- The OpenCHAMI target itself may not be restartable. While the deployment
+  tool tries to clear as much residual state as it can, if OpenCHAMI
+  won't re-start, then the tool will not re-run. Usually stopping and
+  removing OpenCHAMI, then rebooting the headnode and re-deploying
+  OpenCHAMI will clear these problems.
+- along similar lines, the deployment tool is not protected against
   being interrupted (for example CTRL-C) in the middle of a sensitive
   operation that may leave the system in an inconsistent state -- it is
   safest not to interrupt a running instance.
@@ -340,7 +376,7 @@ being investigated and implemented:
   managed nodes. To host more than that, use a host with more CPU,
   Memory and Disk resources.
 - issues have been seen with the `openchami-external` podman network
-  disappearing after several runs of the installer. This appears to be
+  disappearing after several runs of the deployment tool. This appears to be
   intractable without a reboot, but a reboot of the host node will clear
   it.
 - issues have been seen with the digests of boot images not matcing (some
