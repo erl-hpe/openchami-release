@@ -37,3 +37,4 @@ Exec=--deploy \
 Restart=on-failure
 Type=oneshot
 RemainAfterExit=yes
+RestartSec=10s

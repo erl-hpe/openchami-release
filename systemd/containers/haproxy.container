@@ -29,3 +29,4 @@ PodmanArgs=--http-proxy=false
 
 [Service]
 Restart=always
+RestartSec=10s
